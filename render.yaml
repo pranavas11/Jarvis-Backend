@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: jarvis-backend
+    runtime: python
+    plan: free                     # change as needed
+    rootDir: server               # <- important if your code is under /server
+    buildCommand: pip install -r requirements.txt
+    startCommand: ./start.sh
+    autoDeploy: true
+    healthCheckPath: /healthz      # add the /healthz route in app.py as shown earlier
+    envVars:
+      # --- Required runtime settings ---
+      - key: CORS_ALLOWED_ORIGINS
+        # Local dev + any Vercel preview (safe to start; tighten later)
+        value: http://localhost:5173,http://127.0.0.1:5173,https://*.vercel.app
+      - key: REACT_APP_PORT
+        value: "5173"
+
+      # --- Secrets (add these in Render → Secrets, then reference them here) ---
+      - key: GOOGLE_API_KEY
+        fromSecret: google-api-key
+      - key: ELEVENLABS_API_KEY
+        fromSecret: elevenlabs-api-key
+      - key: MAPS_API_KEY
+        fromSecret: maps-api-key
+
+      # --- Flask secret: autogenerate OR reference a secret you create ---
+      - key: FLASK_SECRET_KEY
+        generateValue: true

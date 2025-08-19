@@ -1,0 +1,16 @@
+# requirements.txt
+Flask
+Flask-SocketIO
+python-dotenv
+google-genai        # google-generativeai
+torch # Or torch-cpu if no CUDA GPU / for simpler setup
+python-weather
+googlemaps
+websockets
+googlesearch-python
+aiohttp
+beautifulsoup4
+lxml # Parser for BeautifulSoup
+requests # Often a dependency
+gunicorn # For production deployment
+eventlet # Recommended async mode for Flask-SocketIO
