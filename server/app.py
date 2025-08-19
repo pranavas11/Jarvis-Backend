@@ -9,6 +9,10 @@ from flask_socketio import SocketIO, emit
 load_dotenv()
 from Jarvis_Online import Jarvis # Make sure filename matches Jarvis_Online.py
 
+@app.get("/healthz")
+def health():
+    return jsonify({"ok": True}), 200
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'a_default_fallback_secret_key!')
 
@@ -28,8 +32,10 @@ ALLOWED_ORIGINS = os.getenv(
 
 socketio = SocketIO(
     app,
-    async_mode='threading',
-    cors_allowed_origins=[REACT_APP_ORIGIN, REACT_APP_ORIGIN_IP, VERCEL_ORIGIN],
+    #async_mode='threading',
+    async_mode='eventlet',             # use eventlet in prod with gunicorn
+    #cors_allowed_origins=[REACT_APP_ORIGIN, REACT_APP_ORIGIN_IP, VERCEL_ORIGIN],
+    cors_allowed_origins=ALLOWED_ORIGINS,
     ping_timeout=25,
     ping_interval=20
 )
