@@ -35,10 +35,6 @@ MAX_QUEUE_SIZE = 1
 
 MODEL_ID = "eleven_flash_v2_5" # Example model - check latest recommended models
 
-@app.get("/healthz")
-def health():
-    return jsonify({"ok": True}), 200
-
 # Who does this key belong to?
 # u = requests.get("https://api.elevenlabs.io/v1/user", headers={"xi-api-key": ELEVENLABS_API_KEY}).json()
 # print("User:", u.get("subscription", {}).get("tier"), u.get("email", "<unknown>"))
@@ -72,7 +68,7 @@ class Jarvis:
                 type=types.Type.OBJECT, properties={"location": types.Schema(type=types.Type.STRING, description="The city and state, e.g., San Francisco, CA or Vinings, GA")}, required=["location"]
             )
         )
-        
+
         self.get_travel_duration_func = types.FunctionDeclaration(
             name="get_travel_duration",
             description="Calculates the estimated travel duration between a specified origin and destination using Google Maps. Considers current traffic for driving mode.",
