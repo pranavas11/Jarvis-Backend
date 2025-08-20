@@ -15,13 +15,12 @@ REACT_APP_PORT = os.getenv('REACT_APP_PORT', '5173')
 REACT_APP_ORIGIN = f"http://localhost:{REACT_APP_PORT}"
 REACT_APP_ORIGIN_IP = f"http://127.0.0.1:{REACT_APP_PORT}"
 
-#VERCEL_ORIGIN = os.getenv('VERCEL_ORIGIN', 'https://your-frontend.vercel.app')
 ALLOWED_ORIGINS = os.getenv(
     "CORS_ALLOWED_ORIGINS",
     ",".join([
         f"http://localhost:{REACT_APP_PORT}",
         f"http://127.0.0.1:{REACT_APP_PORT}",
-        os.getenv('VERCEL_ORIGIN', 'https://your-frontend.vercel.app'),
+        os.getenv('VERCEL_ORIGIN', 'https://myjarvis-ai.vercel.app'),
     ])
 ).split(",")
 
@@ -29,7 +28,6 @@ socketio = SocketIO(
     app,
     #async_mode='threading',
     async_mode='eventlet',             # use eventlet in prod with gunicorn
-    #cors_allowed_origins=[REACT_APP_ORIGIN, REACT_APP_ORIGIN_IP, VERCEL_ORIGIN],
     cors_allowed_origins=ALLOWED_ORIGINS,
     ping_timeout=25,
     ping_interval=20
@@ -38,6 +36,10 @@ socketio = SocketIO(
 @app.get("/healthz")
 def health():
     return jsonify({"ok": True}), 200
+
+@app.get("/")
+def root():
+    return "Jarvis backend is running! ✅", 200
 
 from Jarvis_Online import Jarvis
 
