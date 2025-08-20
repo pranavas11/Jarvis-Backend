@@ -33,7 +33,7 @@ socketio = SocketIO(
     cors_allowed_origins=ALLOWED_ORIGINS,
     ping_timeout=25,
     ping_interval=20,
-    logger=True
+    logger=True,
     engineio_logger=True
 )
 
