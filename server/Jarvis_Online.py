@@ -379,17 +379,17 @@ class Jarvis:
                 except asyncio.QueueEmpty: break
     
     async def clear_video_queue(self):
-    """Clear video frame data when video feed stops"""
-    print(f"Clearing video queue for client: {self.client_sid}")
-    self.latest_video_frame_data_url = None
-    # If you add a video_frame_queue later, clear it here too
-    # if hasattr(self, 'video_frame_queue'):
-    #     while not self.video_frame_queue.empty():
-    #         try:
-    #             self.video_frame_queue.get_nowait()
-    #         except asyncio.QueueEmpty:
-    #             break
-    print(f"Video queue cleared for client: {self.client_sid}")
+        """Clear video frame data when video feed stops"""
+        print(f"Clearing video queue for client: {self.client_sid}")
+        self.latest_video_frame_data_url = None
+        # If you add a video_frame_queue later, clear it here too
+        # if hasattr(self, 'video_frame_queue'):
+        #     while not self.video_frame_queue.empty():
+        #         try:
+        #             self.video_frame_queue.get_nowait()
+        #         except asyncio.QueueEmpty:
+        #             break
+        print(f"Video queue cleared for client: {self.client_sid}")
 
     async def process_input(self, message, is_final_turn_input=False):
         """ Puts message and flag into the input queue. """
