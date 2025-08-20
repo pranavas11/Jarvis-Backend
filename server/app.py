@@ -7,11 +7,6 @@ from flask import Flask, render_template, request, jsonify # Make sure request i
 from flask_socketio import SocketIO, emit
 
 load_dotenv()
-from Jarvis_Online import Jarvis # Make sure filename matches Jarvis_Online.py
-
-@app.get("/healthz")
-def health():
-    return jsonify({"ok": True}), 200
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'a_default_fallback_secret_key!')
@@ -39,6 +34,12 @@ socketio = SocketIO(
     ping_timeout=25,
     ping_interval=20
 )
+
+@app.get("/healthz")
+def health():
+    return jsonify({"ok": True}), 200
+
+from Jarvis_Online import Jarvis
 
 Jarvis_instance = None
 Jarvis_loop = None
