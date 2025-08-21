@@ -128,7 +128,7 @@ class Jarvis:
         self.chat = self.client.aio.chats.create(model=self.model, config=self.config)
 
         # Validate ElevenLabs API key format
-        if not ELEVENLABS_API_KEY
+        if not ELEVENLABS_API_KEY:
             print("WARNING: ElevenLabs API key appears invalid!!!")
 
         # Queues and tasks
@@ -371,7 +371,7 @@ class Jarvis:
         response_payload = {
             "results": fetched_results
         }
-        
+
         print(f"Custom Google search function for '{query}' returning {len(fetched_results)} processed results to Gemini.")
         return response_payload
     
