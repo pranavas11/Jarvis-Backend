@@ -604,7 +604,7 @@ class Jarvis:
     #                  except Exception: pass
     #              self.tts_websocket = None
 
-    def check_elevenlabs_account():
+    def check_elevenlabs_account(self):
         try:
             response = requests.get(
                 "https://api.elevenlabs.io/v1/user", 
