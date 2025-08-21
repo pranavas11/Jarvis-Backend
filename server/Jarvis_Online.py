@@ -303,7 +303,7 @@ class Jarvis:
         # ... (keep the previous working version that returns URLs) ...
         print(f"Performing synchronous Google search for: '{query}'")
         try:
-            results = list(Google_Search_sync(term=query, num_results=num_results, lang="en", timeout=1))
+            results = list(Google_Search_sync(term=query, num_results=num_results, lang="en", timeout=10, advanced=True, sleep_interval=0.5))
             print(f"Found {len(results)} results.")
             return results
         except Exception as e:
@@ -521,7 +521,7 @@ class Jarvis:
                                         if self.socketio and self.client_sid:
                                             self.socketio.emit('receive_text_chunk', {'text': part.text}, room=self.client_sid)
                                         processed_text_in_turn = True
-                        self.response_queue.put("")
+                        await self.response_queue.put("")
 
                 # --- 5. Signal End of Response to TTS ---
                 print("--- Finished processing response for this turn. Signaling TTS end. ---")
