@@ -2,7 +2,7 @@
 #!/bin/bash
 #exec gunicorn -k eventlet -w 1 app:app --bind 0.0.0.0:$PORT
 exec gunicorn \
-    --worker-class sync \
+    --worker-class eventlet \
     --workers 1 \
     --threads 4 \
     --timeout 120 \
