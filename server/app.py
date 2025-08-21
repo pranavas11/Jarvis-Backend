@@ -304,11 +304,11 @@ CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 # Configure SocketIO for production with fallback transports
 socketio = SocketIO(
     app,
-    async_mode='threading',
+    async_mode='eventlet',
     cors_allowed_origins=ALLOWED_ORIGINS,
     ping_timeout=60,
     ping_interval=25,
-    logger=False,
+    logger=True,
     engineio_logger=False,
     transports=['websocket', 'polling']  # Allow fallback to polling
 )
