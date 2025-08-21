@@ -552,57 +552,57 @@ class Jarvis:
                  video_task.cancel()
             self.gemini_session = None # Assuming this was meant to be self.chat? Or track session state elsewhere.
 
-    # async def run_tts_and_audio_out(self):
-    #     print("Starting TTS and Audio Output manager...")
-    #     uri = f"wss://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}/stream-input?model_id=eleven_flash_v2_5&output_format=pcm_24000"
-    #     while True:
-    #         try:
-    #             async with websockets.connect(uri) as websocket:
-    #                 self.tts_websocket = websocket
-    #                 print("ElevenLabs WebSocket Connected.")
-    #                 await websocket.send(json.dumps({"text": " ", "voice_settings": {"stability": 0.3, "similarity_boost": 0.9, "speed": 1.1}, "xi_api_key": ELEVENLABS_API_KEY,}))
-    #                 async def tts_listener():
-    #                     try:
-    #                         while True:
-    #                             message = await websocket.recv()
-    #                             data = json.loads(message)
-    #                             if data.get("audio"):
-    #                                 audio_chunk = base64.b64decode(data["audio"])
-    #                                 if self.socketio and self.client_sid:
-    #                                     self.socketio.emit('receive_audio_chunk', {'audio': base64.b64encode(audio_chunk).decode('utf-8')}, room=self.client_sid)
-    #                             elif data.get('isFinal'): pass
-    #                     except websockets.exceptions.ConnectionClosedOK: print("TTS WebSocket listener closed normally.")
-    #                     except websockets.exceptions.ConnectionClosedError as e: print(f"TTS WebSocket listener closed error: {e}")
-    #                     except asyncio.CancelledError: print("TTS listener task cancelled.")
-    #                     except Exception as e: print(f"Error in TTS listener: {e}")
-    #                     finally: self.tts_websocket = None
-    #                 listener_task = asyncio.create_task(tts_listener())
-    #                 try:
-    #                     while True:
-    #                         text_chunk = await self.response_queue.get()
-    #                         if text_chunk is None:
-    #                             print("End of text stream signal received for TTS.")
-    #                             await websocket.send(json.dumps({"text": ""}))
-    #                             break
-    #                         await websocket.send(json.dumps({"text": text_chunk}))
-    #                         print(f"Sent text to TTS: {text_chunk}")
-    #                         #self.response_queue.task_done()
-    #                 except asyncio.CancelledError: print("TTS sender task cancelled.")
-    #                 except Exception as e: print(f"Error sending text to TTS: {e}")
-    #                 finally:
-    #                     if listener_task and not listener_task.done():
-    #                         try:
-    #                             if not listener_task.cancelled(): await asyncio.wait_for(listener_task, timeout=5.0)
-    #                         except asyncio.TimeoutError: print("Timeout waiting for TTS listener.")
-    #                         except asyncio.CancelledError: print("TTS listener task already cancelled.")
-    #         except websockets.exceptions.ConnectionClosedError as e: print(f"ElevenLabs WebSocket connection error: {e}. Reconnecting..."); await asyncio.sleep(5)
-    #         except asyncio.CancelledError: print("TTS main task cancelled."); break
-    #         except Exception as e: print(f"Error in TTS main loop: {e}"); await asyncio.sleep(5)
-    #         finally:
-    #              if self.tts_websocket:
-    #                  try: await self.tts_websocket.close()
-    #                  except Exception: pass
-    #              self.tts_websocket = None
+    async def run_tts_and_audio_out(self):
+        print("Starting TTS and Audio Output manager...")
+        uri = f"wss://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}/stream-input?model_id=eleven_flash_v2_5&output_format=pcm_24000"
+        while True:
+            try:
+                async with websockets.connect(uri) as websocket:
+                    self.tts_websocket = websocket
+                    print("ElevenLabs WebSocket Connected.")
+                    await websocket.send(json.dumps({"text": " ", "voice_settings": {"stability": 0.3, "similarity_boost": 0.9, "speed": 1.1}, "xi_api_key": ELEVENLABS_API_KEY,}))
+                    async def tts_listener():
+                        try:
+                            while True:
+                                message = await websocket.recv()
+                                data = json.loads(message)
+                                if data.get("audio"):
+                                    audio_chunk = base64.b64decode(data["audio"])
+                                    if self.socketio and self.client_sid:
+                                        self.socketio.emit('receive_audio_chunk', {'audio': base64.b64encode(audio_chunk).decode('utf-8')}, room=self.client_sid)
+                                elif data.get('isFinal'): pass
+                        except websockets.exceptions.ConnectionClosedOK: print("TTS WebSocket listener closed normally.")
+                        except websockets.exceptions.ConnectionClosedError as e: print(f"TTS WebSocket listener closed error: {e}")
+                        except asyncio.CancelledError: print("TTS listener task cancelled.")
+                        except Exception as e: print(f"Error in TTS listener: {e}")
+                        finally: self.tts_websocket = None
+                    listener_task = asyncio.create_task(tts_listener())
+                    try:
+                        while True:
+                            text_chunk = await self.response_queue.get()
+                            if text_chunk is None:
+                                print("End of text stream signal received for TTS.")
+                                await websocket.send(json.dumps({"text": ""}))
+                                break
+                            await websocket.send(json.dumps({"text": text_chunk}))
+                            print(f"Sent text to TTS: {text_chunk}")
+                            #self.response_queue.task_done()
+                    except asyncio.CancelledError: print("TTS sender task cancelled.")
+                    except Exception as e: print(f"Error sending text to TTS: {e}")
+                    finally:
+                        if listener_task and not listener_task.done():
+                            try:
+                                if not listener_task.cancelled(): await asyncio.wait_for(listener_task, timeout=5.0)
+                            except asyncio.TimeoutError: print("Timeout waiting for TTS listener.")
+                            except asyncio.CancelledError: print("TTS listener task already cancelled.")
+            except websockets.exceptions.ConnectionClosedError as e: print(f"ElevenLabs WebSocket connection error: {e}. Reconnecting..."); await asyncio.sleep(5)
+            except asyncio.CancelledError: print("TTS main task cancelled."); break
+            except Exception as e: print(f"Error in TTS main loop: {e}"); await asyncio.sleep(5)
+            finally:
+                 if self.tts_websocket:
+                     try: await self.tts_websocket.close()
+                     except Exception: pass
+                 self.tts_websocket = None
 
     def check_elevenlabs_account(self):
         try:
@@ -620,178 +620,178 @@ class Jarvis:
         except Exception as e:
             print(f"Error checking ElevenLabs account: {e}")
 
-    async def run_tts_and_audio_out(self):
-        print("Starting TTS and Audio Output manager...")
-        uri = f"wss://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}/stream-input?model_id={MODEL_ID}&output_format=pcm_24000"
+    # async def run_tts_and_audio_out(self):
+    #     print("Starting TTS and Audio Output manager...")
+    #     uri = f"wss://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}/stream-input?model_id={MODEL_ID}&output_format=pcm_24000"
         
-        # Add connection retry logic
-        max_retries = 3
-        retry_count = 0
+    #     # Add connection retry logic
+    #     max_retries = 3
+    #     retry_count = 0
         
-        while retry_count < max_retries:
-            try:
-                # Validate API key before connecting
-                if not ELEVENLABS_API_KEY:
-                    print("ERROR: Invalid or missing ElevenLabs API key")
-                    await asyncio.sleep(30)  # Wait before retry
-                    retry_count += 1
-                    continue
+    #     while retry_count < max_retries:
+    #         try:
+    #             # Validate API key before connecting
+    #             if not ELEVENLABS_API_KEY:
+    #                 print("ERROR: Invalid or missing ElevenLabs API key")
+    #                 await asyncio.sleep(30)  # Wait before retry
+    #                 retry_count += 1
+    #                 continue
                     
-                print(f"Attempting TTS WebSocket connection (attempt {retry_count + 1}/{max_retries})")
+    #             print(f"Attempting TTS WebSocket connection (attempt {retry_count + 1}/{max_retries})")
                 
-                async with websockets.connect(
-                    uri, 
-                    ping_interval=10,  # Send ping every 10 seconds
-                    ping_timeout=20,   # Wait 20 seconds for pong
-                    close_timeout=10   # Wait 10 seconds when closing
-                ) as websocket:
-                    self.tts_websocket = websocket
-                    print("ElevenLabs WebSocket Connected successfully.")
+    #             async with websockets.connect(
+    #                 uri, 
+    #                 ping_interval=10,  # Send ping every 10 seconds
+    #                 ping_timeout=20,   # Wait 20 seconds for pong
+    #                 close_timeout=10   # Wait 10 seconds when closing
+    #             ) as websocket:
+    #                 self.tts_websocket = websocket
+    #                 print("ElevenLabs WebSocket Connected successfully.")
                     
-                    # Send proper initialization message
-                    init_message = {
-                        "text": "",  # Empty string, not space
-                        "voice_settings": {
-                            "stability": 0.3, 
-                            "similarity_boost": 0.9, 
-                            "speed": 1.1
-                        }, 
-                        "xi_api_key": ELEVENLABS_API_KEY
-                    }
-                    await websocket.send(json.dumps(init_message))
-                    print("Sent TTS initialization message")
+    #                 # Send proper initialization message
+    #                 init_message = {
+    #                     "text": "",  # Empty string, not space
+    #                     "voice_settings": {
+    #                         "stability": 0.3, 
+    #                         "similarity_boost": 0.9, 
+    #                         "speed": 1.1
+    #                     }, 
+    #                     "xi_api_key": ELEVENLABS_API_KEY
+    #                 }
+    #                 await websocket.send(json.dumps(init_message))
+    #                 print("Sent TTS initialization message")
                     
-                    # Create listener task
-                    async def tts_listener():
-                        try:
-                            while True:
-                                try:
-                                    # Add timeout to recv to prevent hanging
-                                    message = await asyncio.wait_for(websocket.recv(), timeout=30.0)
-                                    data = json.loads(message)
+    #                 # Create listener task
+    #                 async def tts_listener():
+    #                     try:
+    #                         while True:
+    #                             try:
+    #                                 # Add timeout to recv to prevent hanging
+    #                                 message = await asyncio.wait_for(websocket.recv(), timeout=30.0)
+    #                                 data = json.loads(message)
                                     
-                                    if data.get("audio"):
-                                        audio_chunk = base64.b64decode(data["audio"])
-                                        if self.socketio and self.client_sid:
-                                            self.socketio.emit('receive_audio_chunk', {
-                                                'audio': base64.b64encode(audio_chunk).decode('utf-8')
-                                            }, room=self.client_sid)
+    #                                 if data.get("audio"):
+    #                                     audio_chunk = base64.b64decode(data["audio"])
+    #                                     if self.socketio and self.client_sid:
+    #                                         self.socketio.emit('receive_audio_chunk', {
+    #                                             'audio': base64.b64encode(audio_chunk).decode('utf-8')
+    #                                         }, room=self.client_sid)
                                             
-                                    elif data.get('isFinal'):
-                                        print("TTS marked response as final")
+    #                                 elif data.get('isFinal'):
+    #                                     print("TTS marked response as final")
                                         
-                                    elif data.get('error'):
-                                        print(f"TTS API Error: {data['error']}")
+    #                                 elif data.get('error'):
+    #                                     print(f"TTS API Error: {data['error']}")
                                         
-                                except asyncio.TimeoutError:
-                                    print("TTS listener timeout - sending keep-alive")
-                                    # Send empty text to keep connection alive
-                                    try:
-                                        await websocket.send(json.dumps({"text": ""}))
-                                    except Exception as e:
-                                        print(f"Failed to send keep-alive: {e}")
-                                        break
+    #                             except asyncio.TimeoutError:
+    #                                 print("TTS listener timeout - sending keep-alive")
+    #                                 # Send empty text to keep connection alive
+    #                                 try:
+    #                                     await websocket.send(json.dumps({"text": ""}))
+    #                                 except Exception as e:
+    #                                     print(f"Failed to send keep-alive: {e}")
+    #                                     break
                                         
-                        except websockets.exceptions.ConnectionClosedOK:
-                            print("TTS WebSocket listener closed normally.")
-                        except websockets.exceptions.ConnectionClosedError as e:
-                            print(f"TTS WebSocket listener closed with error: {e}")
-                            if "1008" in str(e):
-                                print("Policy violation detected - may need paid ElevenLabs account")
-                        except asyncio.CancelledError:
-                            print("TTS listener task cancelled.")
-                        except Exception as e:
-                            print(f"Error in TTS listener: {e}")
-                        finally:
-                            self.tts_websocket = None
+    #                     except websockets.exceptions.ConnectionClosedOK:
+    #                         print("TTS WebSocket listener closed normally.")
+    #                     except websockets.exceptions.ConnectionClosedError as e:
+    #                         print(f"TTS WebSocket listener closed with error: {e}")
+    #                         if "1008" in str(e):
+    #                             print("Policy violation detected - may need paid ElevenLabs account")
+    #                     except asyncio.CancelledError:
+    #                         print("TTS listener task cancelled.")
+    #                     except Exception as e:
+    #                         print(f"Error in TTS listener: {e}")
+    #                     finally:
+    #                         self.tts_websocket = None
                     
-                    listener_task = asyncio.create_task(tts_listener())
+    #                 listener_task = asyncio.create_task(tts_listener())
                     
-                    try:
-                        # Main text processing loop
-                        last_activity = asyncio.get_event_loop().time()
+    #                 try:
+    #                     # Main text processing loop
+    #                     last_activity = asyncio.get_event_loop().time()
                         
-                        while True:
-                            try:
-                                # Wait for text with timeout
-                                text_chunk = await asyncio.wait_for(
-                                    self.response_queue.get(), 
-                                    timeout=15.0  # Shorter timeout than ElevenLabs 20s limit
-                                )
+    #                     while True:
+    #                         try:
+    #                             # Wait for text with timeout
+    #                             text_chunk = await asyncio.wait_for(
+    #                                 self.response_queue.get(), 
+    #                                 timeout=15.0  # Shorter timeout than ElevenLabs 20s limit
+    #                             )
                                 
-                                if text_chunk is None:
-                                    print("End of text stream signal received for TTS.")
-                                    # Send final empty text to close stream properly
-                                    await websocket.send(json.dumps({"text": ""}))
-                                    break
+    #                             if text_chunk is None:
+    #                                 print("End of text stream signal received for TTS.")
+    #                                 # Send final empty text to close stream properly
+    #                                 await websocket.send(json.dumps({"text": ""}))
+    #                                 break
                                     
-                                if text_chunk.strip():  # Only send non-empty text
-                                    await websocket.send(json.dumps({"text": text_chunk}))
-                                    print(f"Sent text to TTS: {text_chunk}")
-                                    last_activity = asyncio.get_event_loop().time()
+    #                             if text_chunk.strip():  # Only send non-empty text
+    #                                 await websocket.send(json.dumps({"text": text_chunk}))
+    #                                 print(f"Sent text to TTS: {text_chunk}")
+    #                                 last_activity = asyncio.get_event_loop().time()
                                 
-                            except asyncio.TimeoutError:
-                                # Send keep-alive if no activity for too long
-                                current_time = asyncio.get_event_loop().time()
-                                if current_time - last_activity > 15:
-                                    print("Sending TTS keep-alive due to inactivity")
-                                    await websocket.send(json.dumps({"text": ""}))
-                                    last_activity = current_time
+    #                         except asyncio.TimeoutError:
+    #                             # Send keep-alive if no activity for too long
+    #                             current_time = asyncio.get_event_loop().time()
+    #                             if current_time - last_activity > 15:
+    #                                 print("Sending TTS keep-alive due to inactivity")
+    #                                 await websocket.send(json.dumps({"text": ""}))
+    #                                 last_activity = current_time
                                     
-                    except asyncio.CancelledError:
-                        print("TTS sender task cancelled.")
-                    except websockets.exceptions.ConnectionClosed as e:
-                        print(f"TTS WebSocket closed during sending: {e}")
-                        raise  # Re-raise to trigger reconnection
-                    except Exception as e:
-                        print(f"Error sending text to TTS: {e}")
-                        raise  # Re-raise to trigger reconnection
-                    finally:
-                        # Clean up listener task
-                        if listener_task and not listener_task.done():
-                            listener_task.cancel()
-                            try:
-                                await asyncio.wait_for(listener_task, timeout=5.0)
-                            except asyncio.TimeoutError:
-                                print("Timeout waiting for TTS listener cleanup")
-                            except asyncio.CancelledError:
-                                pass
+    #                 except asyncio.CancelledError:
+    #                     print("TTS sender task cancelled.")
+    #                 except websockets.exceptions.ConnectionClosed as e:
+    #                     print(f"TTS WebSocket closed during sending: {e}")
+    #                     raise  # Re-raise to trigger reconnection
+    #                 except Exception as e:
+    #                     print(f"Error sending text to TTS: {e}")
+    #                     raise  # Re-raise to trigger reconnection
+    #                 finally:
+    #                     # Clean up listener task
+    #                     if listener_task and not listener_task.done():
+    #                         listener_task.cancel()
+    #                         try:
+    #                             await asyncio.wait_for(listener_task, timeout=5.0)
+    #                         except asyncio.TimeoutError:
+    #                             print("Timeout waiting for TTS listener cleanup")
+    #                         except asyncio.CancelledError:
+    #                             pass
                                 
-                    # If we reach here without exception, connection was successful
-                    retry_count = 0  # Reset retry count on successful connection
+    #                 # If we reach here without exception, connection was successful
+    #                 retry_count = 0  # Reset retry count on successful connection
                     
-            except websockets.exceptions.ConnectionClosedError as e:
-                print(f"ElevenLabs WebSocket connection error: {e}")
-                if "1008" in str(e):
-                    if "Free Tier usage disabled" in str(e):
-                        print("ERROR: ElevenLabs Free Tier disabled. Consider upgrading to paid plan.")
-                        await asyncio.sleep(60)  # Wait longer for policy violations
-                    elif "timeout" in str(e):
-                        print("Connection timeout - will retry with better keep-alive")
-                        await asyncio.sleep(5)
-                else:
-                    await asyncio.sleep(5)
-                retry_count += 1
+    #         except websockets.exceptions.ConnectionClosedError as e:
+    #             print(f"ElevenLabs WebSocket connection error: {e}")
+    #             if "1008" in str(e):
+    #                 if "Free Tier usage disabled" in str(e):
+    #                     print("ERROR: ElevenLabs Free Tier disabled. Consider upgrading to paid plan.")
+    #                     await asyncio.sleep(60)  # Wait longer for policy violations
+    #                 elif "timeout" in str(e):
+    #                     print("Connection timeout - will retry with better keep-alive")
+    #                     await asyncio.sleep(5)
+    #             else:
+    #                 await asyncio.sleep(5)
+    #             retry_count += 1
                 
-            except asyncio.CancelledError:
-                print("TTS main task cancelled.")
-                break
+    #         except asyncio.CancelledError:
+    #             print("TTS main task cancelled.")
+    #             break
                 
-            except Exception as e:
-                print(f"Unexpected error in TTS main loop: {e}")
-                retry_count += 1
-                await asyncio.sleep(5)
+    #         except Exception as e:
+    #             print(f"Unexpected error in TTS main loop: {e}")
+    #             retry_count += 1
+    #             await asyncio.sleep(5)
                 
-            finally:
-                if self.tts_websocket:
-                    try:
-                        await self.tts_websocket.close()
-                    except Exception:
-                        pass
-                    finally:
-                        self.tts_websocket = None
+    #         finally:
+    #             if self.tts_websocket:
+    #                 try:
+    #                     await self.tts_websocket.close()
+    #                 except Exception:
+    #                     pass
+    #                 finally:
+    #                     self.tts_websocket = None
         
-        print("TTS manager stopped after maximum retries or cancellation")
+    #     print("TTS manager stopped after maximum retries or cancellation")
 
     async def start_all_tasks(self):
         print("Starting Jarvis background tasks...")
