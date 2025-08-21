@@ -1,7 +1,12 @@
-import eventlet
-eventlet.monkey_patch()
-
 import os
+import sys
+
+# Only monkey patch if running directly, not under Gunicorn
+# Check if we're running under Gunicorn
+if 'gunicorn' not in os.environ.get('SERVER_SOFTWARE', ''):
+    import eventlet
+    eventlet.monkey_patch()
+
 from dotenv import load_dotenv
 import asyncio
 import threading
@@ -20,15 +25,29 @@ ALLOWED_ORIGINS = [frontend_origin] if frontend_origin else []
 # Enable CORS for REST endpoints
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
-socketio = SocketIO(
-    app,
-    async_mode='eventlet',
-    cors_allowed_origins=ALLOWED_ORIGINS,
-    ping_timeout=25,
-    ping_interval=20,
-    logger=True,
-    engineio_logger=True
-)
+# Conditional SocketIO configuration based on environment
+if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
+    # Production configuration for Gunicorn
+    socketio = SocketIO(
+        app,
+        async_mode='threading',  # Use threading instead of eventlet
+        cors_allowed_origins=ALLOWED_ORIGINS,
+        ping_timeout=25,
+        ping_interval=20,
+        logger=False,           # Disable verbose logging in production
+        engineio_logger=False
+    )
+else:
+    # Development configuration
+    socketio = SocketIO(
+        app,
+        async_mode='eventlet',
+        cors_allowed_origins=ALLOWED_ORIGINS,
+        ping_timeout=25,
+        ping_interval=20,
+        logger=True,
+        engineio_logger=True
+    )
 
 @app.get("/healthz")
 def health():
@@ -53,13 +72,22 @@ def run_asyncio_loop(loop):
         loop.run_forever()
     finally:
         print("Global asyncio event loop stopping...")
-        tasks = asyncio.all_tasks(loop=loop)
-        for task in tasks:
-            if not task.done():
-                task.cancel()
         try:
-            loop.run_until_complete(asyncio.gather(*[t for t in tasks if not t.done()], return_exceptions=True))
+            # Cancel all remaining tasks
+            pending = asyncio.all_tasks(loop)
+            for task in pending:
+                if not task.done():
+                    task.cancel()
+            
+            # Wait for cancellation to complete
+            if pending:
+                loop.run_until_complete(
+                    asyncio.gather(*pending, return_exceptions=True)
+                )
+            
+            # Shutdown async generators
             loop.run_until_complete(loop.shutdown_asyncgens())
+            
         except RuntimeError as e:
             print(f"RuntimeError during loop cleanup: {e}")
         except Exception as e:
@@ -76,9 +104,17 @@ def ensure_global_loop():
     if global_thread is None or not global_thread.is_alive():
         print("Starting global asyncio thread...")
         global_loop = asyncio.new_event_loop()
-        global_thread = threading.Thread(target=run_asyncio_loop, args=(global_loop,), daemon=True)
+        global_thread = threading.Thread(
+            target=run_asyncio_loop, 
+            args=(global_loop,), 
+            daemon=True,
+            name="AsyncioEventLoop"
+        )
         global_thread.start()
-        socketio.sleep(0.1)  # Give thread time to start
+        
+        # Give thread time to start (use time.sleep instead of socketio.sleep for compatibility)
+        import time
+        time.sleep(0.1)
         print("Global asyncio thread started.")
     
     return global_loop
@@ -222,7 +258,6 @@ def handle_video_feed_stopped():
     if client_sid in active_sessions:
         jarvis_instance = active_sessions[client_sid]
         if global_loop and global_loop.is_running():
-            # Add clear_video_queue method to your Jarvis class if needed
             if hasattr(jarvis_instance, 'clear_video_queue'):
                 asyncio.run_coroutine_threadsafe(jarvis_instance.clear_video_queue(), global_loop)
                 print(f"Video frame queue clearing requested for SID: {client_sid}")
@@ -231,28 +266,38 @@ def handle_video_feed_stopped():
     else:
         print(f"No active session for video_feed_stopped from SID: {client_sid}")
 
-if __name__ == '__main__':
-    print("Starting Flask-SocketIO server...")
-    try:
-        # CHANGED: Set debug=False for production
-        socketio.run(app, debug=False, host='0.0.0.0', port=5000, use_reloader=False)
-    finally:
-        print("\nServer shutting down...")
-        # Clean up all active sessions
-        for client_sid, jarvis_instance in list(active_sessions.items()):
-            print(f"Stopping Jarvis instance for SID: {client_sid}")
-            if global_loop and global_loop.is_running():
-                try:
-                    future = asyncio.run_coroutine_threadsafe(jarvis_instance.stop_all_tasks(), global_loop)
-                    future.result(timeout=5)
-                except Exception as e:
-                    print(f"Exception stopping Jarvis for SID {client_sid}: {e}")
-        
-        active_sessions.clear()
-        
+# Cleanup function for graceful shutdown
+def cleanup_sessions():
+    """Clean up all active sessions during shutdown"""
+    print("\nCleaning up active sessions...")
+    for client_sid, jarvis_instance in list(active_sessions.items()):
+        print(f"Stopping Jarvis instance for SID: {client_sid}")
         if global_loop and global_loop.is_running():
-            print("Stopping global asyncio loop...")
+            try:
+                future = asyncio.run_coroutine_threadsafe(jarvis_instance.stop_all_tasks(), global_loop)
+                future.result(timeout=5)
+            except Exception as e:
+                print(f"Exception stopping Jarvis for SID {client_sid}: {e}")
+    
+    active_sessions.clear()
+    
+    if global_loop and global_loop.is_running():
+        print("Stopping global asyncio loop...")
+        try:
             global_loop.call_soon_threadsafe(global_loop.stop)
             if global_thread and global_thread.is_alive():
                 global_thread.join(timeout=5)
+        except Exception as e:
+            print(f"Error stopping global loop: {e}")
+
+# Register cleanup function
+import atexit
+atexit.register(cleanup_sessions)
+
+if __name__ == '__main__':
+    print("Starting Flask-SocketIO server...")
+    try:
+        socketio.run(app, debug=False, host='0.0.0.0', port=5000, use_reloader=False)
+    finally:
+        cleanup_sessions()
         print("Shutdown complete.")
