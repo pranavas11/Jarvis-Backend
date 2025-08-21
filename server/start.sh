@@ -6,7 +6,7 @@ exec gunicorn \
     --workers 1 \
     --threads 4 \
     --timeout 120 \
-    --keepalive 2 \
+    --keep-alive 2 \
     --max-requests 1000 \
     --max-requests-jitter 50 \
     --preload \
